@@ -13,11 +13,4 @@ services:
       - HF_HOME=/models      # model cache inside container
     volumes:
       - ./models:/models     # persist downloaded model between restarts
-    networks:
-      - domis_network
     restart: unless-stopped
-
-networks:
-  domis_network:
-    external: true
-    name: domis_network

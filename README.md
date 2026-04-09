@@ -32,10 +32,21 @@ Built on [onnx-asr](https://github.com/istupakov/onnx-asr) — a lightweight ONN
 docker compose up -d --build
 ```
 
-### NVIDIA GPU (RTX 3090, etc.)
+### NVIDIA GPU — nvidia-container-toolkit (standard)
+
+Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) on the host.
 
 ```bash
 docker compose -f docker-compose.cuda.yml up -d --build
+```
+
+### NVIDIA GPU — Proxmox LXC (direct device passthrough)
+
+For Proxmox LXC containers where nvidia-container-toolkit is not available.
+GPU devices are passed through directly from the host.
+
+```bash
+docker-compose -f docker-compose.cuda.lxc.yml up -d --build
 ```
 
 ### Test
@@ -80,11 +91,8 @@ docker compose -f docker-compose.cuda.yml up -d --build
 
 ### Recommended quantization per provider
 
-| Provider | Recommended quantization | Why |
-|---|---|---|
-| CPU | `int8` | Smaller model, faster on CPU |
-| CUDA | `fp16` | Native GPU half-precision, faster than int8 |
-| DirectML | `int8` | Best compatibility |
+The current ONNX export (`istupakov/parakeet-tdt-0.6b-v3-onnx`) only provides `int8` weights.
+Use `int8` for all providers.
 
 ---
 

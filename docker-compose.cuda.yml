@@ -9,12 +9,10 @@ services:
       - "8000:8000"
     environment:
       - PROVIDER=cuda
-      - PARAKEET_QUANTIZATION=fp16  # fp16 is faster than int8 on GPU
+      - PARAKEET_QUANTIZATION=int8
       - HF_HOME=/models
     volumes:
       - ./models:/models
-    networks:
-      - domis_network
     restart: unless-stopped
     deploy:
       resources:

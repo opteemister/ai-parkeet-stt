@@ -1,0 +1,30 @@
+services:
+  parakeet:
+    build:
+      context: .
+      args:
+        RUNTIME: cuda
+    container_name: parakeet-stt
+    ports:
+      - "8000:8000"
+    environment:
+      - PROVIDER=cuda
+      - PARAKEET_QUANTIZATION=int8
+      - HF_HOME=/models
+      - LD_LIBRARY_PATH=/usr/lib/cuda
+      # Path to CUDA 12 runtime libs on the host — change if needed.
+      # To find: find /usr -name "libcublas.so.12" 2>/dev/null
+      #   Ollama installed:  /usr/lib/ollama/cuda_v12
+      #   CUDA toolkit:      /usr/local/cuda-12/lib64
+      - CUDA_LIBS_PATH=/usr/lib/ollama/cuda_v12
+    volumes:
+      - ./models:/models
+      - ${CUDA_LIBS_PATH}:/usr/lib/cuda:ro
+    restart: unless-stopped
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+      - /dev/nvidia-caps/nvidia-cap1:/dev/nvidia-caps/nvidia-cap1
+      - /dev/nvidia-caps/nvidia-cap2:/dev/nvidia-caps/nvidia-cap2
