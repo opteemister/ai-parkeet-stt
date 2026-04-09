@@ -1,0 +1,23 @@
+services:
+  parakeet:
+    build:
+      context: .
+      args:
+        RUNTIME: cpu         # cpu | cuda | directml — must match PROVIDER below
+    container_name: parakeet-stt
+    ports:
+      - "8000:8000"
+    environment:
+      - PROVIDER=cpu         # cpu | cuda | directml
+      - PARAKEET_QUANTIZATION=int8  # int8 | fp16 | fp32
+      - HF_HOME=/models      # model cache inside container
+    volumes:
+      - ./models:/models     # persist downloaded model between restarts
+    networks:
+      - domis_network
+    restart: unless-stopped
+
+networks:
+  domis_network:
+    external: true
+    name: domis_network

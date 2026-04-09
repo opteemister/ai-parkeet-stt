@@ -1,0 +1,9 @@
+# Model cache — downloaded automatically from HuggingFace at first run
+models/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
