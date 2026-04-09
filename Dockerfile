@@ -17,7 +17,8 @@ RUN if [ "$RUNTIME" = "cuda" ]; then \
         nvidia-cublas-cu12 \
         nvidia-curand-cu12 \
         nvidia-cufft-cu12 \
-        nvidia-cudnn-cu12; \
+        nvidia-cudnn-cu12 \
+        nvidia-cuda-runtime-cu12; \
     elif [ "$RUNTIME" = "directml" ]; then \
       pip install --no-cache-dir onnxruntime-directml; \
     else \
@@ -28,7 +29,8 @@ RUN if [ "$RUNTIME" = "cuda" ]; then \
 ENV LD_LIBRARY_PATH=/usr/local/lib/python3.11/site-packages/nvidia/cublas/lib:\
 /usr/local/lib/python3.11/site-packages/nvidia/curand/lib:\
 /usr/local/lib/python3.11/site-packages/nvidia/cufft/lib:\
-/usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib
+/usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib:\
+/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib
 
 RUN pip install --no-cache-dir onnx-asr huggingface_hub fastapi uvicorn python-multipart numpy soundfile
 
