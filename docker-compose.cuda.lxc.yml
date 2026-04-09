@@ -12,14 +12,13 @@ services:
       - PARAKEET_QUANTIZATION=int8
       - HF_HOME=/models
       - LD_LIBRARY_PATH=/usr/lib/cuda
-      # Path to CUDA 12 runtime libs on the host — change if needed.
+    volumes:
+      - ./models:/models
+      # Path to CUDA 12 runtime libs on the host.
       # To find: find /usr -name "libcublas.so.12" 2>/dev/null
       #   Ollama installed:  /usr/lib/ollama/cuda_v12
       #   CUDA toolkit:      /usr/local/cuda-12/lib64
-      - CUDA_LIBS_PATH=/usr/lib/ollama/cuda_v12
-    volumes:
-      - ./models:/models
-      - ${CUDA_LIBS_PATH}:/usr/lib/cuda:ro
+      - /usr/lib/ollama/cuda_v12:/usr/lib/cuda:ro
     restart: unless-stopped
     devices:
       - /dev/nvidia0:/dev/nvidia0
