@@ -25,12 +25,13 @@ _PROVIDERS = {
 
 _providers = _PROVIDERS.get(PROVIDER, _PROVIDERS["cpu"])
 
-# Set explicit thread count to suppress pthread_setaffinity_np errors in containers
+# Set explicit thread count to suppress pthread_setaffinity_np errors in containers.
+# Tune via env vars: INTRA_THREADS (parallelism within one op) and INTER_THREADS (between ops).
 _sess_options = ort.SessionOptions()
-_sess_options.intra_op_num_threads = os.cpu_count() or 4
-_sess_options.inter_op_num_threads = 1
+_sess_options.intra_op_num_threads = int(os.getenv("INTRA_THREADS", os.cpu_count() or 4))
+_sess_options.inter_op_num_threads = int(os.getenv("INTER_THREADS", os.cpu_count() or 4))
 
-logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER}")
+logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER} | threads={_sess_options.intra_op_num_threads}/{_sess_options.inter_op_num_threads}")
 asr = onnx_asr.load_model(_MODEL_NAME, quantization=QUANTIZATION, providers=_providers, sess_options=_sess_options)
 logger.info("Model ready")
 
