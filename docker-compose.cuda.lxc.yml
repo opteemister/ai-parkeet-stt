@@ -13,6 +13,7 @@ services:
       - HF_HOME=/models
     volumes:
       - ./models:/models
+      - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro
     restart: unless-stopped
     devices:
       - /dev/nvidia0:/dev/nvidia0

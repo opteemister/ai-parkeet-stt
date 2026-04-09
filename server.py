@@ -4,6 +4,7 @@ import logging
 import subprocess
 import time
 import onnx_asr
+import onnxruntime as ort
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -23,8 +24,14 @@ _PROVIDERS = {
 }
 
 _providers = _PROVIDERS.get(PROVIDER, _PROVIDERS["cpu"])
+
+# Set explicit thread count to suppress pthread_setaffinity_np errors in containers
+_sess_options = ort.SessionOptions()
+_sess_options.intra_op_num_threads = os.cpu_count() or 4
+_sess_options.inter_op_num_threads = 1
+
 logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER}")
-asr = onnx_asr.load_model(_MODEL_NAME, quantization=QUANTIZATION, providers=_providers)
+asr = onnx_asr.load_model(_MODEL_NAME, quantization=QUANTIZATION, providers=_providers, sess_options=_sess_options)
 logger.info("Model ready")
 
 
