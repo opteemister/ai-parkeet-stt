@@ -4,6 +4,7 @@ import logging
 import subprocess
 import time
 import onnx_asr
+import onnxruntime as ort
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
@@ -14,8 +15,14 @@ app = FastAPI()
 
 QUANTIZATION = os.getenv("PARAKEET_QUANTIZATION", "int8")
 
-logger.info(f"Loading nemo-parakeet-tdt-0.6b-v3 | quantization={QUANTIZATION}")
-model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization=QUANTIZATION)
+# Explicit thread count suppresses pthread_setaffinity_np errors in LXC/Docker containers.
+# Tune via env vars if needed (defaults to all available CPUs).
+_sess_options = ort.SessionOptions()
+_sess_options.intra_op_num_threads = int(os.getenv("INTRA_THREADS", os.cpu_count() or 4))
+_sess_options.inter_op_num_threads = int(os.getenv("INTER_THREADS", os.cpu_count() or 4))
+
+logger.info(f"Loading nemo-parakeet-tdt-0.6b-v3 | quantization={QUANTIZATION} | threads={_sess_options.intra_op_num_threads}/{_sess_options.inter_op_num_threads}")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization=QUANTIZATION, sess_options=_sess_options)
 logger.info("Model ready")
 
 

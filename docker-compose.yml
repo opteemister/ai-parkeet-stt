@@ -7,6 +7,8 @@ services:
     environment:
       - PARAKEET_QUANTIZATION=int8
       - HF_HOME=/models
+      - INTRA_THREADS=6
+      - INTER_THREADS=6
     volumes:
       - ./models:/models
     restart: unless-stopped
