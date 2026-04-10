@@ -1,16 +1,12 @@
 services:
   parakeet:
-    build:
-      context: .
-      args:
-        RUNTIME: cpu         # cpu | cuda | directml — must match PROVIDER below
+    build: .
     container_name: parakeet-stt
     ports:
       - "8000:8000"
     environment:
-      - PROVIDER=cpu         # cpu | cuda | directml
-      - PARAKEET_QUANTIZATION=int8  # int8 | fp16 | fp32
-      - HF_HOME=/models      # model cache inside container
+      - PARAKEET_QUANTIZATION=int8
+      - HF_HOME=/models
     volumes:
-      - ./models:/models     # persist downloaded model between restarts
+      - ./models:/models
     restart: unless-stopped
