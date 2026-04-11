@@ -5,6 +5,7 @@ import subprocess
 import time
 import onnx_asr
 import onnxruntime as ort
+from onnx_asr.onnx import TensorRtOptions
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -14,13 +15,37 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 _MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
-QUANTIZATION = os.getenv("PARAKEET_QUANTIZATION", "int8")
+_quant = os.getenv("PARAKEET_QUANTIZATION", "int8")
+QUANTIZATION = None if _quant == "fp32" else _quant  # fp32 = unquantized ONNX (no suffix)
 PROVIDER = os.getenv("PROVIDER", "cpu").lower()
 
+_TRT_WORKSPACE = int(os.getenv("TRT_WORKSPACE_GB", "1")) * 1024 ** 3
+_TRT_FP16 = os.getenv("TRT_FP16", "true").lower() in ("1", "true", "yes")
+_TRT_MAX_AUDIO_SEC = int(os.getenv("TRT_MAX_AUDIO_SEC", "70"))
+_TRT_CACHE_PATH = os.getenv("TRT_CACHE_PATH", "/trt_engines")
+
+# Configure TRT input shape profiles before loading the model.
+# batch=1: optimize engine for single-audio inference (our use case).
+# waveform_len_ms: max audio length TRT engine will handle; audio longer than this falls back to CUDA.
+TensorRtOptions.profile_max_shapes["batch"] = 1
+TensorRtOptions.profile_max_shapes["waveform_len_ms"] = _TRT_MAX_AUDIO_SEC * 1000
+
 _PROVIDERS = {
-    "cpu":      ["CPUExecutionProvider"],
-    "cuda":     ["CUDAExecutionProvider", "CPUExecutionProvider"],
-    "directml": ["DmlExecutionProvider",  "CPUExecutionProvider"],
+    "cpu":       ["CPUExecutionProvider"],
+    "cuda":      ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    "tensorrt":  [
+        ("TensorrtExecutionProvider", {
+            "trt_max_workspace_size": _TRT_WORKSPACE,
+            "trt_fp16_enable": _TRT_FP16,
+            "trt_engine_cache_enable": True,
+            "trt_engine_cache_path": _TRT_CACHE_PATH,
+            "trt_timing_cache_enable": True,
+            "trt_timing_cache_path": _TRT_CACHE_PATH,
+        }),
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ],
+    "directml":  ["DmlExecutionProvider", "CPUExecutionProvider"],
 }
 
 _providers = _PROVIDERS.get(PROVIDER, _PROVIDERS["cpu"])
@@ -31,8 +56,27 @@ _sess_options = ort.SessionOptions()
 _sess_options.intra_op_num_threads = int(os.getenv("INTRA_THREADS", os.cpu_count() or 4))
 _sess_options.inter_op_num_threads = int(os.getenv("INTER_THREADS", os.cpu_count() or 4))
 
-logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER} | threads={_sess_options.intra_op_num_threads}/{_sess_options.inter_op_num_threads}")
+_trt_info = f" | trt_workspace={_TRT_WORKSPACE // 1024**3}GB fp16={_TRT_FP16} max_audio={_TRT_MAX_AUDIO_SEC}s" if PROVIDER == "tensorrt" else ""
+logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER}{_trt_info} | threads={_sess_options.intra_op_num_threads}/{_sess_options.inter_op_num_threads}")
 asr = onnx_asr.load_model(_MODEL_NAME, quantization=QUANTIZATION, providers=_providers, sess_options=_sess_options)
+
+if PROVIDER == "tensorrt":
+    import wave
+    _warmup_path = tempfile.mktemp(suffix=".wav")
+    try:
+        with wave.open(_warmup_path, "w") as _wf:
+            _wf.setnchannels(1)
+            _wf.setsampwidth(2)
+            _wf.setframerate(16000)
+            _wf.writeframes(bytes(16000 * 2))  # 1 second of silence at 16kHz
+        logger.info("Warming up TRT engine (first-time compilation may take a while)...")
+        _t0 = time.time()
+        asr.recognize(_warmup_path, language="ru")
+        logger.info(f"TRT warmup done in {time.time() - _t0:.2f}s")
+    finally:
+        if os.path.exists(_warmup_path):
+            os.unlink(_warmup_path)
+
 logger.info("Model ready")
 
 
