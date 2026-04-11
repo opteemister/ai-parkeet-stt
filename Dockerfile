@@ -9,14 +9,19 @@ ARG RUNTIME=cpu
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Install onnxruntime backend.
-# For CUDA: also install NVIDIA CUDA 12 runtime libraries via pip (official NVIDIA packages).
+# For CUDA/TensorRT: also install NVIDIA CUDA 12 runtime libraries via pip (official NVIDIA packages).
 # These are user-space libs and do not conflict with host GPU drivers.
-RUN if [ "$RUNTIME" = "cuda" ]; then \
+# For TensorRT: additionally installs tensorrt pip package (~1 GB). First inference request
+# triggers engine compilation (slow), subsequent requests are fast.
+RUN if [ "$RUNTIME" = "cuda" ] || [ "$RUNTIME" = "tensorrt" ]; then \
       pip install --no-cache-dir "onnxruntime-gpu[cuda,cudnn]"; \
     elif [ "$RUNTIME" = "directml" ]; then \
       pip install --no-cache-dir onnxruntime-directml; \
     else \
       pip install --no-cache-dir onnxruntime; \
+    fi
+RUN if [ "$RUNTIME" = "tensorrt" ]; then \
+      pip install --no-cache-dir tensorrt; \
     fi
 
 # CUDA libs are installed to site-packages/nvidia/*/lib/ — add them to the search path

@@ -1,0 +1,30 @@
+services:
+  parakeet:
+    build:
+      context: .
+      args:
+        RUNTIME: tensorrt
+    container_name: parakeet-stt
+    ports:
+      - "8000:8000"
+    environment:
+      - PROVIDER=tensorrt
+      - PARAKEET_QUANTIZATION=fp32    # TensorRT requires fp32 (no CUDA kernels for int8)
+      - HF_HOME=/models
+      - INTRA_THREADS=6
+      - INTER_THREADS=6
+      - TRT_WORKSPACE_GB=1            # workspace used only during engine compilation; 1GB is enough
+      - TRT_FP16=true                 # compile engine in fp16 (~2GB VRAM vs ~4GB for fp32)
+      - TRT_MAX_AUDIO_SEC=70          # max audio length the TRT engine handles; longer falls back to CUDA
+    volumes:
+      - ./models:/models
+      - ./trt_engines:/trt_engines    # cache compiled TRT engines (avoids recompile on restart)
+      - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro
+    restart: unless-stopped
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+      - /dev/nvidia-caps/nvidia-cap1:/dev/nvidia-caps/nvidia-cap1
+      - /dev/nvidia-caps/nvidia-cap2:/dev/nvidia-caps/nvidia-cap2
