@@ -11,6 +11,8 @@ services:
       - PROVIDER=cpu         # cpu | cuda | directml
       - PARAKEET_QUANTIZATION=int8  # int8 | fp16 | fp32
       - HF_HOME=/models      # model cache inside container
+      - INTRA_THREADS=6      # tune for your CPU NUMA topology (6 = one NUMA node on EPYC)
+      - INTER_THREADS=6
     volumes:
       - ./models:/models     # persist downloaded model between restarts
     restart: unless-stopped

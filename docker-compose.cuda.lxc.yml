@@ -11,6 +11,8 @@ services:
       - PROVIDER=cuda
       - PARAKEET_QUANTIZATION=int8
       - HF_HOME=/models
+      - INTRA_THREADS=6
+      - INTER_THREADS=6
     volumes:
       - ./models:/models
       - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro
