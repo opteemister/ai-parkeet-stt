@@ -19,6 +19,13 @@ RUN if [ "$RUNTIME" = "cuda" ]; then \
       pip install --no-cache-dir onnxruntime; \
     fi
 
+# CUDA libs are installed to site-packages/nvidia/*/lib/ — add them to the search path
+ENV LD_LIBRARY_PATH=/usr/local/lib/python3.11/site-packages/nvidia/cublas/lib:\
+/usr/local/lib/python3.11/site-packages/nvidia/curand/lib:\
+/usr/local/lib/python3.11/site-packages/nvidia/cufft/lib:\
+/usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib:\
+/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib
+
 RUN pip install --no-cache-dir onnx-asr huggingface_hub fastapi uvicorn python-multipart numpy soundfile
 
 WORKDIR /app
