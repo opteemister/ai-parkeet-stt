@@ -24,12 +24,14 @@ RUN if [ "$RUNTIME" = "tensorrt" ]; then \
       pip install --no-cache-dir tensorrt; \
     fi
 
-# CUDA libs are installed to site-packages/nvidia/*/lib/ — add them to the search path
+# CUDA libs are installed to site-packages/nvidia/*/lib/ — add them to the search path.
+# TensorRT libs are installed to site-packages/tensorrt_libs/ by the tensorrt pip package.
 ENV LD_LIBRARY_PATH=/usr/local/lib/python3.11/site-packages/nvidia/cublas/lib:\
 /usr/local/lib/python3.11/site-packages/nvidia/curand/lib:\
 /usr/local/lib/python3.11/site-packages/nvidia/cufft/lib:\
 /usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib:\
-/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib
+/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:\
+/usr/local/lib/python3.11/site-packages/tensorrt_libs
 
 RUN pip install --no-cache-dir onnx-asr huggingface_hub fastapi uvicorn python-multipart numpy soundfile
 
