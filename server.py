@@ -59,6 +59,24 @@ _sess_options.inter_op_num_threads = int(os.getenv("INTER_THREADS", os.cpu_count
 _trt_info = f" | trt_workspace={_TRT_WORKSPACE // 1024**3}GB fp16={_TRT_FP16} max_audio={_TRT_MAX_AUDIO_SEC}s" if PROVIDER == "tensorrt" else ""
 logger.info(f"Loading {_MODEL_NAME} | quantization={QUANTIZATION} | provider={PROVIDER}{_trt_info} | threads={_sess_options.intra_op_num_threads}/{_sess_options.inter_op_num_threads}")
 asr = onnx_asr.load_model(_MODEL_NAME, quantization=QUANTIZATION, providers=_providers, sess_options=_sess_options)
+
+if PROVIDER == "tensorrt":
+    import wave
+    _warmup_path = tempfile.mktemp(suffix=".wav")
+    try:
+        with wave.open(_warmup_path, "w") as _wf:
+            _wf.setnchannels(1)
+            _wf.setsampwidth(2)
+            _wf.setframerate(16000)
+            _wf.writeframes(bytes(16000 * 2))  # 1 second of silence at 16kHz
+        logger.info("Warming up TRT engine (first-time compilation may take a while)...")
+        _t0 = time.time()
+        asr.recognize(_warmup_path, language="ru")
+        logger.info(f"TRT warmup done in {time.time() - _t0:.2f}s")
+    finally:
+        if os.path.exists(_warmup_path):
+            os.unlink(_warmup_path)
+
 logger.info("Model ready")
 
 
